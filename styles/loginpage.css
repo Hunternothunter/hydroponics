@@ -1,0 +1,99 @@
+body, html {
+    height: 100%;
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f1f1f1;
+    margin: 0;
+    padding: 0;
+}
+
+.container-fluid {
+    height: 100%;
+}
+
+.typing-effect {
+    height: 100vh;
+    background-color: #ffffff; /*#cab092*/
+    color: #4d311e;
+    padding: 40px;
+    position: relative;
+}
+
+#csta-logo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 30%;
+    margin-top: 1%;
+    margin-bottom: 5%;
+}
+
+#csta-logo img {
+    max-width: 30%;
+    max-height: 100%; /* Ensures the image doesn't exceed the container height */
+}
+
+#csta-container {
+    font-weight: 700;
+    font-size: 3em;
+}
+
+#dynamic-text::after {
+    content: '|';
+    display: inline-block;
+    animation: blinkCursor 0.7s infinite;
+    margin-left: 5px;
+}
+
+@keyframes blinkCursor {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0;
+    }
+}
+
+#dynamic-text {
+    font-size: 3em;
+}
+
+.login-form {
+    width: 100%;
+    max-width: 450px;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #ffffff;
+    box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.1);
+    /* background: transparent;
+    backdrop-filter: blur(8px); */
+    margin: 0 auto;
+    position: relative;
+}
+.login-form h2 {
+    text-align: center;
+    margin-bottom: 35px;
+}
+
+.form-group {
+    margin-bottom: 25px;
+}
+
+.btn-primary {
+    margin-top: 20px;
+    width: 100%;
+}
+
+/* Media query for smaller screens */
+@media (max-width: 767px) {
+    .typing-effect {
+        display: none !important;
+    }
+    .FormLogin{
+        height: 100vh;
+    }
+    .login-form {
+        width: 100%;
+        margin: 20px auto;
+    }    
+}
