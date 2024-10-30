@@ -1,8 +1,13 @@
 <?php
 
-session_start();
-session_unset();
-session_destroy();
-header('location: loginpage.php');
-exit();
-?>
+
+if ($_SERVER['REQUEST_METHOD'] === "POST") {
+    session_start();
+    session_unset();
+    session_destroy();
+    header('location: login.php');
+    exit();
+}else{
+    header('Location:index.php');
+    exit();
+}

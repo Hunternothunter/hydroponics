@@ -2,7 +2,9 @@
 require_once('includes/config.php');
 session_start();
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['img'])) {
+header('Content-Type: application/json'); // Set header to return JSON
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Retrieve the userID from the session
     $id = $_SESSION['userID'];
     $firstname = $_POST['fullName'];
@@ -22,18 +24,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['img'])) {
 
         // Handle file upload
         if ($file['error'] == UPLOAD_ERR_OK) {
-            // Get file content
-            $imgData = file_get_contents($file['tmp_name']);
-            // Update profile picture blob in the database
-            $sql = "UPDATE user_login SET profilepic=? WHERE userID=?";
-            $stmt = $conn->prepare($sql);
-            $stmt->execute(array($imgData, $id));
-        } else {
-            echo "Error: File upload failed.";
-            echo '<script>alert("Error: File upload failed")</script>';
+            $uploadDir = 'public/profile_pictures/'; // Directory for storing profile pictures
+            $fileName = basename($file['name']);
+            $targetFilePath = $uploadDir . $fileName;
+
+            // Move the uploaded file to the server
+            if (move_uploaded_file($file['tmp_name'], $targetFilePath)) {
+                // Update profile picture filename in the database
+                $sql = "UPDATE user_login SET profilepic=? WHERE userID=?";
+                $stmt = $conn->prepare($sql);
+                $stmt->execute(array($fileName, $id));
+            } else {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Error: File upload failed.']);
+                exit();
+            }
         }
 
-        header("Location: users-profile.php");
+        echo json_encode(['status' => 'success', 'message' => 'Personal information has been updated.']);
         exit();
     }
+    http_response_code(400);
+    echo json_encode(['status' => 'error', 'message' => 'User ID not found.']);
+} else {
+    http_response_code(405); // Method not allowed
+    echo json_encode([ 'status' => 'error', 'message' => 'Method not allowed.']);
 }
+?>

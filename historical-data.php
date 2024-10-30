@@ -3,10 +3,10 @@ require_once('includes/config.php');
 
 session_start();
 if (!isset($_SESSION['userID'])) {
-    header("Location: loginpage.php");
+    header("Location: login.php");
     exit;
 }
-$user_id =  $_SESSION['userID'];
+$user_id = $_SESSION['userID'];
 
 $currentRoute = "historical";
 ?>
@@ -56,12 +56,6 @@ $currentRoute = "historical";
     <main id="main" class="main">
         <div class="pagetitle">
             <h1>Historical Data</h1>
-            <nav>
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="gauge-index.php">Home</a></li>
-                    <li class="breadcrumb-item active">Historical Data</li>
-                </ol>
-            </nav>
         </div>
         <section class="section">
             <div class="container">
@@ -105,6 +99,7 @@ $currentRoute = "historical";
                         <div class="card-body text-center">
                             <canvas id="tdsChart" style="width:100%;max-width:600px"></canvas>
                             <div id="tds_gauge" class="gauge-container"></div>
+                            <div id="tds_status" class="mt-2"></div> <!-- Status Display -->
                         </div>
                     </div>
                 </div>
@@ -116,6 +111,7 @@ $currentRoute = "historical";
                         <div class="card-body text-center">
                             <canvas id="phChart" style="width:100%;max-width:600px"></canvas>
                             <div id="ph_gauge" class="gauge-container"></div>
+                            <div id="ph_status" class="mt-2"></div> <!-- Status Display -->
                         </div>
                     </div>
                 </div>
@@ -127,6 +123,7 @@ $currentRoute = "historical";
                         <div class="card-body text-center">
                             <canvas id="ecChart" style="width:100%;max-width:600px"></canvas>
                             <div id="ec_gauge" class="gauge-container"></div>
+                            <div id="ec_status" class="mt-2"></div> <!-- Status Display -->
                         </div>
                     </div>
                 </div>
@@ -138,6 +135,7 @@ $currentRoute = "historical";
                         <div class="card-body text-center">
                             <canvas id="waterTempChart" style="width:100%;max-width:600px"></canvas>
                             <div id="water_temp_gauge" class="gauge-container"></div>
+                            <div id="water_temp_status" class="mt-2"></div> <!-- Status Display -->
                         </div>
                     </div>
                 </div>
@@ -149,6 +147,7 @@ $currentRoute = "historical";
                         <div class="card-body text-center">
                             <canvas id="ambientTempChart" style="width:100%;max-width:600px"></canvas>
                             <div id="air_temp_gauge" class="gauge-container"></div>
+                            <div id="air_temp_status" class="mt-2"></div> <!-- Status Display -->
                         </div>
                     </div>
                 </div>
@@ -160,6 +159,7 @@ $currentRoute = "historical";
                         <div class="card-body text-center">
                             <canvas id="humidityChart" style="width:100%;"></canvas>
                             <div id="humidity_gauge" class="gauge-container"></div>
+                            <div id="humidity_status" class="mt-2"></div> <!-- Status Display -->
                         </div>
                     </div>
                 </div>
@@ -167,6 +167,9 @@ $currentRoute = "historical";
         </section>
 
     </main>
+
+    <?php require_once('includes/mobile-nav.php'); ?>
+
     <script src="jquery/dist/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
 
@@ -176,27 +179,33 @@ $currentRoute = "historical";
             function fetchAndUpdateData(fromDate, toDate) {
                 var components = [{
                         id: 'tdsChart',
-                        component: 'tds_level'
+                        component: 'tds_level',
+                        statusElement: 'tds_status'
                     },
                     {
                         id: 'phChart',
-                        component: 'pH_level'
+                        component: 'pH_level',
+                        statusElement: 'ph_status'
                     },
                     {
                         id: 'ecChart',
-                        component: 'ec_level'
+                        component: 'ec_level',
+                        statusElement: 'ec_status'
                     },
                     {
                         id: 'waterTempChart',
-                        component: 'water_temperature'
+                        component: 'water_temperature',
+                        statusElement: 'water_temp_status'
                     },
                     {
                         id: 'ambientTempChart',
-                        component: 'air_temperature'
+                        component: 'air_temperature',
+                        statusElement: 'air_temp_status'
                     },
                     {
                         id: 'humidityChart',
-                        component: 'air_humidity'
+                        component: 'air_humidity',
+                        statusElement: 'humidity_status'
                     }
                 ];
 
@@ -210,13 +219,105 @@ $currentRoute = "historical";
                             to_date: toDate
                         },
                         success: function(response) {
-                            updateChart(response, comp.id);
+                            var { chartData, statusMessage } = processResponse(response);
+                            updateChart(chartData, comp.id);
+                            updateStatus(comp.statusElement, statusMessage);
                         },
                         error: function(xhr, status, error) {
                             console.error('AJAX Error: ' + status, error);
                         }
                     });
                 });
+            }
+
+            function processResponse(response) {
+                var rows = response.split('<tr>');
+                var xValues = [];
+                var yValues = [];
+                var maxValue = Number.MIN_VALUE;
+                var minValue = Number.MAX_VALUE;
+
+                for (var i = 1; i < rows.length; i++) {
+                    var cols = rows[i].split('<td>');
+                    if (cols.length >= 2) {
+                        var x = cols[2].trim().replace('</td>', '').replace('</tr>', '');
+                        var y = parseFloat(cols[1].trim().replace('</td>', ''));
+                        xValues.push(x);
+                        yValues.push(y);
+                        if (y > maxValue) maxValue = y;
+                        if (y < minValue) minValue = y;
+                    }
+                }
+
+                // Generate a status message based on the range of values
+                var statusMessage = generateStatusMessage(minValue, maxValue);
+
+                return {
+                    chartData: {
+                        labels: xValues,
+                        data: yValues
+                    },
+                    statusMessage: statusMessage
+                };
+            }
+
+            function generateStatusMessage(min, max) {
+                // Customize the logic based on your specific requirements
+                if (min < 0 || max > 100) {
+                    return 'Warning: Values are outside the safe range!';
+                } else if (min >= 0 && max <= 50) {
+                    return 'Status: Optimal conditions.';
+                } else {
+                    return 'Status: Monitor closely.';
+                }
+            }
+
+            function updateChart(chartData, chartId) {
+                var ctx = document.getElementById(chartId).getContext('2d');
+                var existingChart = Chart.getChart(chartId);
+                if (existingChart) {
+                    existingChart.data.labels = chartData.labels;
+                    existingChart.data.datasets[0].data = chartData.data;
+                    existingChart.update();
+                } else {
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: chartData.labels,
+                            datasets: [{
+                                fill: false,
+                                pointRadius: 1,
+                                borderColor: 'rgba(0,0,255,0.5)',
+                                data: chartData.data
+                            }]
+                        },
+                        options: {
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                title: {
+                                    display: true,
+                                    fontSize: 24
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    display: false
+                                },
+                                y: {
+                                    ticks: {
+                                        fontSize: 14
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            function updateStatus(statusElementId, message) {
+                $('#' + statusElementId).text(message);
             }
 
             var currentDate = new Date();
@@ -236,71 +337,11 @@ $currentRoute = "historical";
                 fetchAndUpdateData(fromDate, toDate);
             });
         });
-
-        function updateChart(data, chartId) {
-            var rows = data.split('<tr>');
-            var xValues = [];
-            var yValues = [];
-            for (var i = 1; i < rows.length; i++) {
-                var cols = rows[i].split('<td>');
-                if (cols.length >= 2) {
-                    var x = cols[2].trim().replace('</td>', '').replace('</tr>', '');
-                    var y = cols[1].trim().replace('</td>', '');
-                    xValues.push(x);
-                    yValues.push(y);
-                }
-            }
-
-            var ctx = document.getElementById(chartId).getContext('2d');
-            var existingChart = Chart.getChart(chartId);
-            if (existingChart) {
-                existingChart.data.labels = xValues;
-                existingChart.data.datasets[0].data = yValues;
-                existingChart.update();
-            } else {
-                new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: xValues,
-                        datasets: [{
-                            fill: false,
-                            pointRadius: 1,
-                            borderColor: 'rgba(0,0,255,0.5)',
-                            data: yValues
-                        }]
-                    },
-                    options: {
-                        plugins: {
-                            legend: {
-                                display: false
-                            },
-                            title: {
-                                display: true,
-                                fontSize: 24
-                            }
-                        },
-                        scales: {
-                            x: {
-                                display: false
-                            },
-                            y: {
-                                ticks: {
-                                    fontSize: 14
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-        }
     </script>
 
     <script src="https://cdn3.devexpress.com/jslib/17.1.6/js/dx.all.js"></script>
-    <!-- <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script> -->
-    <!-- <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script> -->
-    <script src="js/automatic_logout.js"></script>
+    <!-- <script src="js/automatic_logout.js"></script> -->
 
-    <a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
     <script src="assets/vendor/apexcharts/apexcharts.min.js"></script>
     <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="assets/vendor/chart.js/chart.umd.js"></script>

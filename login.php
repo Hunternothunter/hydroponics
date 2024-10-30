@@ -1,3 +1,12 @@
+<?php
+session_start();
+if (isset($_SESSION['userID'])) {
+    header("Location: index.php");
+    exit;
+}
+
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -84,7 +93,7 @@
 
                 $.ajax({
                     type: 'POST',
-                    url: 'validate_login.php',
+                    url: 'http://huntergramapp.space/validate_login.php',
                     dataType: 'json',
                     data: {
                         username: username,
@@ -92,7 +101,7 @@
                     },
                     success: function(response) {
                         if (response.success) {
-                            window.location.href = 'gauge-index.php';
+                            window.location.href = 'index.php';
                         } else {
                             $('#password').val("");
                             $('.errorMessage').text("Invalid username or password").css("color", "red");
@@ -107,6 +116,15 @@
                 });
             });
         });
+    </script>
+    <script>
+        document.addEventListener('contextmenu', event => event.preventDefault());
+
+        document.onkeydown = function(e) {
+            if (e.key === "F12") {
+                return false; // Disable F12
+            }
+        };
     </script>
 
 </body>

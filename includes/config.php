@@ -1,9 +1,9 @@
 <?php 
 
-$host = "localhost";
-$username = "root";
-$password = "";
-$database = "capstoneone";
+$host = "192.168.0.100";
+$username = "hunterg1_huntergram";
+$password = "Rafael024!!";
+$database = "hunterg1_huntergram";
 
 
 $dsn = "mysql:host={$host};dbname={$database};";

@@ -1,347 +1,571 @@
 <?php
-require_once('includes/config.php');
-
 session_start();
-if(isset($_SESSION['userID'])) {
-    header("Location: loginpage.php");
+if (!isset($_SESSION['userID'])) {
+    header("Location: login.php");
     exit;
 }
-try {
-  // Prepare the SQL statement to fetch the latest pH level data from your database
-  $sql = "SELECT pH_level, tds_level, water_temperature, air_temperature, air_humidity, ec_level, timestamp FROM hydro_parameters ORDER BY id DESC LIMIT 1";
-  $stmt = $conn->prepare($sql);
 
-  // Execute the statement
-  $stmt->execute();
+$currentRoute = "dashboard";
 
-  // Fetch the result
-  $row = $stmt->fetch(PDO::FETCH_ASSOC);
+$profilepic = $_SESSION['profilepic'];
+$userFirtName = $_SESSION['userFirstName'];
+$userLastName = $_SESSION['userLastName'];
 
-  if ($row) {
-    $tds_level = number_format($row['tds_level'], 2);
-    $ec_level = number_format($tds_level / 500, 2);
-    $pH_level = number_format($row['pH_level'], 2);
-    $water_temperature = number_format($row['water_temperature'], 2);
-    $air_temperature = number_format($row['air_temperature'], 2);
-    $air_humidity = number_format($row['air_humidity'], 2);
-    $timestamp = $row['timestamp'];
-  } else {
-    // Default values if no data is found
-    $tds_level = '0.00';
-    $pH_level = '0.00';
-    $ec_level = '0.00';
-    $water_temperature = '0.00';
-    $air_temperature = '0.00';
-    $air_humidity = '0.00';
-    $timestamp = '0.00';
-  }
-} catch (PDOException $e) {
-  // Handle errors
-  echo "Error: " . $e->getMessage();
-}
-
-$conn = null;
+$fullName = $userFirtName . ' ' . $userLastName;
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-  <meta charset="utf-8">
-  <meta content="width=device-width, initial-scale=1.0" name="viewport">
-
-  <title>Smart Hydroponics</title>
-  <meta content="" name="description">
-  <meta content="" name="keywords">
-
-  <link rel="stylesheet" href="css/bootstrap.min.css">
-  <link rel="stylesheet" href="fontawesome/css/all.min.css">
-
-  <!-- Favicons -->
-  <link href="assets/img/logoSIT.png" rel="icon">
-  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
-
-  <!-- Google Fonts -->
-  <link href="https://fonts.gstatic.com" rel="preconnect">
-  <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Nunito:300,300i,400,400i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
-
-  <!-- Vendor CSS Files -->
-  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
-  <link href="assets/vendor/boxicons/css/boxicons.min.css" rel="stylesheet">
-  <link href="assets/vendor/quill/quill.snow.css" rel="stylesheet">
-  <link href="assets/vendor/quill/quill.bubble.css" rel="stylesheet">
-  <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
-  <link href="assets/vendor/simple-datatables/style.css" rel="stylesheet">
-
-  <!-- Template Main CSS File -->
-  <link href="assets/css/style.css" rel="stylesheet">
-
-  <!-- =======================================================
-  * Template Name: NiceAdmin
-  * Updated: Jan 29 2024 with Bootstrap v5.3.2
-  * Template URL: https://bootstrapmade.com/nice-admin-bootstrap-admin-html-template/
-  * Author: BootstrapMade.com
-  * License: https://bootstrapmade.com/license/
-  ======================================================== -->
-
-  <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script> -->
-  <script src="jquery/dist/jquery.min.js"></script>
-
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Smart Hydroponics</title>
+    <meta content="" name="description">
+    <meta content="" name="keywords">
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="fontawesome/css/all.min.css">
+    <link href="assets/img/logoSIT.png" rel="icon">
+    <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+    <link href="https://fonts.gstatic.com" rel="preconnect">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Nunito:300,300i,400,400i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
+    <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+    <link href="assets/vendor/boxicons/css/boxicons.min.css" rel="stylesheet">
+    <link href="assets/vendor/quill/quill.snow.css" rel="stylesheet">
+    <link href="assets/vendor/quill/quill.bubble.css" rel="stylesheet">
+    <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
+    <link href="assets/vendor/simple-datatables/style.css" rel="stylesheet">
+    <link href="assets/css/style.css" rel="stylesheet">
+    <script src="jquery/dist/jquery.min.js"></script>
 </head>
 <style>
-  sup {
-    font-size: smaller;
-    vertical-align: sub;
-  }
-</style>
-
-<script>
-  $(document).ready(function() {
-    function fetchSensorData() {
-      $.ajax({
-        type: "GET",
-        url: "long_polling.php",
-        dataType: "json",
-        success: function(data) {
-          $('#tds_level').html(parseFloat(data.tds_level).toFixed(2) + ' <sup>ppm</sup>');
-          $('#pH_level').html(parseFloat(data.pH_level).toFixed(2) + ' <sup>pH</sup>');
-          $('#ec_level').html(parseFloat(data.ec_level).toFixed(2) + ' <sup>µS/cm</sup>');
-          $('#water_temperature').html(parseFloat(data.water_temperature).toFixed(2) + '<sup>°C</sup>');
-          $('#air_temperature').html(parseFloat(data.air_temperature).toFixed(2) + '<sup>°C</sup>');
-          $('#air_humidity').html(parseFloat(data.air_humidity).toFixed(2) + '<sup>%</sup>');
-
-          console.log("Sensor data updated successfully.");
-
-          setTimeout(fetchSensorData, 240000);
-        },
-        error: function(xhr, status, error) {
-          console.error("Failed to fetch sensor data: " + error);
-          setTimeout(fetchSensorData, 5000);
-        }
-      });
+    .gauge-container {
+        width: 100%;
+        height: 200px;
+        margin: 10px;
+        display: inline-block;
+        vertical-align: top;
+        font-weight: 400;
     }
 
-    fetchSensorData();
-  });
-</script>
+    .unit-value {
+        font-size: 20px;
+        margin-top: 10px;
+        font-weight: 800;
+    }
 
+    .list-container {
+        display: flex;
+        justify-content: center;
+        padding: 10px;
+    }
+
+    .list-unstyled {
+        padding: 0;
+        text-align: left;
+        list-style-type: none;
+        margin: 0;
+        display: flex;
+        flex-wrap: wrap;
+        /* Allow items to wrap to the next line */
+        justify-content: center;
+    }
+
+    .list-unstyled li {
+        margin-right: 20px;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+    }
+
+    .color-box {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        margin-right: 10px;
+        margin-left: 10px;
+        vertical-align: middle;
+    }
+
+    .list-unstyled .color-box:first-child {
+        padding-right: 50px;
+    }
+
+    @media (max-width: 576px) {
+        .list-container {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .list-unstyled {
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .list-unstyled li {
+            margin-right: 0;
+            margin-bottom: 10px;
+            white-space: normal;
+        }
+
+        .color-box {
+            width: 150px;
+        }
+    }
+
+    .card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+    }
+
+    .ellipsis-icon {
+        margin-right: auto;
+        cursor: pointer;
+    }
+
+    .card-title {
+        flex-grow: 1;
+        text-align: center;
+        font-size: 15px;
+        color: dimgray;
+    }
+</style>
 
 <body>
-  <!-- ======= Header ======= -->
-  <?php
-  require_once('includes/navbar.php');
-  ?>
-  <!-- End Header -->
+    <?php require_once('includes/sidebar.php') ?>
+    <?php require_once('includes/navbar.php') ?>
 
-  <!-- ======= Sidebar ======= -->
-  <aside id="sidebar" class="sidebar">
-    <ul class="sidebar-nav" id="sidebar-nav">
-      <li class="nav-item">
-        <a class="nav-link" href="index.php">
-          <i class="bi bi-grid"></i>
-          <span>Dashboard</span>
-        </a>
-      </li> <!-- End Dashboard Nav -->
+    <main id="main" class="main">
+        <div class="pagetitle">
+            <h1>Dashboard</h1>
+        </div>
+        <div class="section">
+            <div class="container">
+                <div class="d-flex flex-wrap justify-content-center">
+                    <div class="col-md-12 col-sm-6 col-12 mb-4">
+                        <div class="card p-2">
+                            <div class="card-body list-container">
+                                <ul class="list-unstyled">
+                                    <li>Indicators: </li>
+                                    <li>Low<span class="color-box" style="background-color: #00BFFF;"></span></li>
+                                    <li>Optimal<span class="color-box" style="background-color: #7CFC00;"></span></li>
+                                    <li>High<span class="color-box" style="background-color: #FFD700;"></span></li>
+                                    <li>Critical<span class="color-box" style="background-color: #FF4500;"></span></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <h5 class="m-3 text-success mb-3">
+                        <span class="d-block d-sm-none">This page will refresh in <span id="countdown">05:00</span> minutes <span class="text-danger">*</span></span>
+                        <span class="d-none d-sm-block">This page will refresh in <span id="countdown">05:00</span> minutes <span class="text-danger">*</span></span>
+                    </h5>
+                </div>
 
-      <li class="nav-item">
-        <a class="nav-link collapsed" href="controls.php">
-          <i class="bi bi-journal-text"></i>
-          <span>Controls</span>
-        </a>
-      </li> <!-- End Components Nav -->
-
-
-      <li class="nav-heading">Account Settings</li>
-
-      <li class="nav-item">
-        <a class="nav-link collapsed" href="users-profile.php">
-          <i class="bi bi-person"></i>
-          <span>Profile</span>
-        </a>
-      </li> <!-- End Profile Nav -->
-    </ul>
-  </aside> <!-- End Sidebar-->
-
-  <main id="main" class="main">
-
-    <div class="pagetitle">
-      <h1>Dashboard</h1>
-      <nav>
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="index.php">Home</a></li>
-          <li class="breadcrumb-item active">Dashboard</li>
-        </ol>
-      </nav>
-    </div> <!-- End Page Title -->
-
-    <section class="section">
-      <div class="container">
-        <div class="row">
-          <div class="col-md-4">
-            <div class="card">
-              <div class="card-header text-center">
-                <span class="text-center">Total Dissolved Solids (TDS)</span>
-              </div>
-              <div class="card-body text-center text-success">
-                <h5 class="card-title" id="tds_level"><?= $tds_level; ?> <sup>ppm</sup></h5>
-                <p class="card-text"><?= $timestamp; ?></p>
-              </div>
+                <div class="d-flex flex-wrap justify-content-center">
+                    <div class="col-md-4 col-sm-6 col-12 mb-4">
+                        <div class="card">
+                            <div class="card-header text-center">
+                                <a type="button" id="tds-button" class="btn ellipsis-button" data-component="tds_level">
+                                    <i class="fa fa-ellipsis-v illipsis-icon"></i>
+                                </a>
+                                <span class="card-title">Total Dissolved Solids (TDS)</span>
+                            </div>
+                            <div class="card-body text-center">
+                                <div id="tds_gauge" class="gauge-container"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-sm-6 col-12 mb-4">
+                        <div class="card">
+                            <div class="card-header text-center">
+                                <a type="button" id="ph-button" class="btn ellipsis-button" data-component="pH_level">
+                                    <i class="fa fa-ellipsis-v illipsis-icon"></i>
+                                </a>
+                                <span class="card-title">pH Level</span>
+                            </div>
+                            <div class="card-body text-center">
+                                <div id="ph_gauge" class="gauge-container"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-sm-6 col-12 mb-4">
+                        <div class="card">
+                            <div class="card-header text-center">
+                                <a type="button" id="ec-button" class="btn ellipsis-button" data-component="ec_level">
+                                    <i class="fa fa-ellipsis-v illipsis-icon"></i>
+                                </a>
+                                <span class="card-title">EC Level</span>
+                            </div>
+                            <div class="card-body text-center">
+                                <div id="ec_gauge" class="gauge-container"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- </div> -->
+                    <!-- <div class="row"> -->
+                    <div class="col-md-4 col-sm-6 col-12 mb-4">
+                        <div class="card">
+                            <div class="card-header text-center">
+                                <a type="button" id="water-button btn" class="btn ellipsis-button" data-component="water_temperature">
+                                    <i class="fa fa-ellipsis-v illipsis-icon"></i>
+                                </a>
+                                <span class="card-title">Water Temperature</span>
+                            </div>
+                            <div class="card-body text-center">
+                                <div id="water_temp_gauge" class="gauge-container"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-sm-6 col-12 mb-4">
+                        <div class="card">
+                            <div class="card-header text-center">
+                                <a type="button" id="temperature-button btn " class="btn ellipsis-button" data-component="air_temperature">
+                                    <i class="fa fa-ellipsis-v illipsis-icon"></i>
+                                </a>
+                                <span class="card-title">Ambient Temperature</span>
+                            </div>
+                            <div class="card-body text-center">
+                                <div id="air_temp_gauge" class="gauge-container"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-sm-6 col-12 mb-4">
+                        <div class="card">
+                            <div class="card-header text-center">
+                                <a type="button" id="humidity-button btn" class="btn ellipsis-button" data-component="air_humidity">
+                                    <i class="fa fa-ellipsis-v illipsis-icon"></i>
+                                </a>
+                                <span class="card-title">Relative Humidity</span>
+                            </div>
+                            <div class="card-body text-center">
+                                <div id="humidity_gauge" class="gauge-container"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
+        </div>
+        </section>
+    </main>
 
-          <div class="col-md-4">
-            <div class="card">
-              <div class="card-header text-center">
-                <span class="text-center">pH Level</span>
-              </div>
-              <div class="card-body text-center text-success">
-                <h5 class="card-title" id="pH_level"><?= $pH_level; ?> <sup>pH</sup></h5>
-                <p class="card-text"><?= $timestamp; ?></p>
-              </div>
-            </div>
-          </div>
+    <?php require_once('includes/mobile-nav.php'); ?>
 
-          <div class="col-md-4">
-            <div class="card">
-              <div class="card-header text-center">
-                <span class="text-center">EC Level</span>
-              </div>
-              <div class="card-body text-center text-success">
-                <h5 class="card-title" id="ec_level"><?= $ec_level; ?> <sup>µS/cm</sup></h5>
-                <p class="card-text"><?= $timestamp; ?></p>
-              </div>
-            </div>
-          </div>
+    <svg width="0" height="0" version="1.1" class="gradient-mask" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <linearGradient id="gradientGauge">
+                <stop class="color-red" offset="0%" />
+                <stop class="color-yellow" offset="17%" />
+                <stop class="color-green" offset="40%" />
+                <stop class="color-yellow" offset="87%" />
+                <stop class="color-red" offset="100%" />
+            </linearGradient>
+        </defs>
+    </svg>
+    <?php //require_once('includes/controls-history-modal.php'); 
+    ?>
+    <script src="https://cdn3.devexpress.com/jslib/17.1.6/js/dx.all.js"></script>
+    <!-- <script src="js/automatic_logout.js"></script> -->
+    <script>
+        $(document).ready(function() {
+            $('.ellipsis-button').on('click', function(e) {
+                e.preventDefault();
 
-          <div class="col-md-4">
-            <div class="card">
-              <div class="card-header text-center">
-                <span class="text-center">Water Temperature</span>
-              </div>
-              <div class="card-body text-center text-success">
-                <h5 class="card-title" id="water_temperature"><?= $water_temperature; ?><sup>°C</sup></h5>
-                <p class="card-text"><?= $timestamp; ?></p>
-              </div>
-              <!-- <div class="col mb-1">
-              <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="flexSwitchCheckChecked" checked>
-                <label class="form-check-label" for="flexSwitchCheckChecked">ON</label>
-              </div>
-            </div> -->
-            </div>
-          </div>
+                var componentType = $(this).data('component');
+                var componentName = $(this).siblings('.card-title').text();
 
-          <div class="col-md-4">
-            <div class="card">
-              <div class="card-header text-center">
-                <span class="text-center">Ambient Temperature</span>
-              </div>
-              <div class="card-body text-center text-success">
-                <h5 class="card-title" id="air_temperature"><?= $air_temperature; ?> <sup>°C</sup></h5>
-                <p class="card-text"><?= $timestamp; ?></p>
-              </div>
-            </div>
-          </div>
+                // Load the modal content
+                $.get('includes/controls-history-modal.php', {
+                    component: componentType
+                }, function(data) {
+                    $('body').append(data);
 
-          <div class="col-md-4">
-            <div class="card">
-              <div class="card-header text-center">
-                <span class="text-center">Relative Humidity</span>
-              </div>
-              <div class="card-body text-center text-success">
-                <h5 class="card-title"><?= $air_humidity; ?><sup>%</sup></h5>
-                <p class="card-text"><?= $timestamp; ?></p>
-              </div>
-            </div>
-          </div>
+                    $('#modalTitle').text(componentName + ' Historical Data');
 
-          <!-- <div class="col-md-4">
-            <div class="card">
-              <div class="card-header text-center">
-                <span class="text-center">Water Flow</span>
-              </div>
-              <div class="card-body text-center text-success">
-                <h5 class="card-title" id="water_flow">620.21 <sup>l/min</sup></h5>
-                <p class="card-text">8/8 16:41:34</p>
-              </div>
-            </div>
-          </div> -->
+                    // Show the modal
+                    $('#controlsHistoryModal').modal('show');
 
-          <!-- <div class="col-md-4">
-            <div class="card">
-              <div class="card-header text-center">
-                <span class="text-center">Water Level</span>
-              </div>
-              <div class="card-body text-center text-success">
-                <h5 class="card-title">0.00 <sup>bool</sup></h5>
-                <p class="card-text">8/8 16:41:50</p>
-              </div>
-            </div>
-          </div> -->
+                    // Remove the modal from the DOM after it is hidden
+                    $('#controlsHistoryModal').on('hidden.bs.modal', function() {
+                        $(this).remove();
+                    });
+                });
+            });
+        });
 
-        </div> <!-- End Row -->
 
-        <!-- <div class="row mt-4">
+        $(document).ready(function() {
+            function createGauge(selector, endValue, unit, ranges) {
+                var gauge = $(selector).dxCircularGauge({
+                    scale: {
+                        startValue: 0,
+                        endValue: endValue,
+                        // tickInterval: endValue / 10,
+                        label: {
+                            customizeText: function(arg) {
+                                return arg.valueText + ' ' + unit;
+                            }
+                        }
+                    },
+                    rangeContainer: {
+                        ranges: ranges
+                    },
+                    valueIndicator: {
+                        type: 'needle',
+                        color: '#444444'
+                    },
+                    title: {
+                        verticalAlignment: 'bottom',
+                        text: '', // Placeholder for the value
+                        font: {
+                            family: '"Segoe UI", sans-serif',
+                            color: '#000',
+                            size: 18,
+                            font: 'bold'
+                        },
+                    },
+                    subvalues: []
+                }).dxCircularGauge("instance");
 
-          <div class="col-md-4">
-            <div class="card">
-              <div class="card-header text-center">
-                <span class="text-center">Vapor PD</span>
-              </div>
-              <div class="card-body text-center text-success">
-                <h5 class="card-title" id="vapor_pd">1.85 <sup>kPa</sup></h5>
-                <p class="card-text">8/8 16:42:10</p>
-              </div>
-            </div>
-          </div>
+                // Update title with initial value
+                gauge.option("title.text", '0 ' + unit);
 
-          <div class="col-md-4">
-            <div class="card">
-              <div class="card-header text-center">
-                <span class="text-center">C02</span>
-              </div>
-              <div class="card-body text-center text-success">
-                <h5 class="card-title" id="co2">1572.00 <sup>ppm</sup></h5>
-                <p class="card-text">8/8 16:42:10</p>
-              </div>
-            </div>
-          </div>
+                return gauge;
+            }
 
-          <div class="col-md-4">
-            <div class="card">
-              <div class="card-header text-center">
-                <span class="text-center">Outside Temp</span>
-              </div>
-              <div class="card-body text-center text-success">
-                <h5 class="card-title" id="outside_temperature">102.81<sup>°F</sup></h5>
-                <p class="card-text">8/8 16:42:10</p>
-              </div>
-            </div>
-          </div>
+            function updateGauge(gauge, value, unit) {
+                gauge.value(value);
+                gauge.option("title.text", value + ' ' + unit);
+            }
 
-        </div> End Row -->
+            // function fetchSensorData() {
+            //     $.ajax({
+            //         type: "GET",
+            //         url: "long_polling.php",
+            //         dataType: "json",
+            //         success: function(data) {
+            //             updateGauge(tdsGauge, parseFloat(data.tds_level), 'ppm');
+            //             updateGauge(phGauge, parseFloat(data.pH_level), 'pH');
+            //             updateGauge(ecGauge, parseFloat(data.ec_level), 'µS/cm');
+            //             updateGauge(waterTempGauge, parseFloat(data.water_temperature), '°C');
+            //             updateGauge(airTempGauge, parseFloat(data.air_temperature), '°C');
+            //             updateGauge(humidityGauge, parseFloat(data.air_humidity), '%');
 
-      </div> <!-- End Container -->
-    </section>
+            //             setTimeout(fetchSensorData, 240000); // 4 minutes
+            //         },
+            //         error: function(xhr, status, error) {
+            //             console.error("Failed to fetch sensor data: " + error);
+            //             setTimeout(fetchSensorData, 5000); // Retry after 5 seconds
+            //         }
+            //     });
+            // }
+            let countdownTimer;
 
-  </main> <!-- End #main -->
+            function startCountdown(duration) {
+                let timer = duration,
+                    minutes, seconds;
+                countdownTimer = setInterval(function() {
+                    minutes = parseInt(timer / 60, 10);
+                    seconds = parseInt(timer % 60, 10);
 
-  <a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+                    minutes = minutes < 10 ? "0" + minutes : minutes;
+                    seconds = seconds < 10 ? "0" + seconds : seconds;
 
-  <!-- Vendor JS Files -->
-  <script src="assets/vendor/apexcharts/apexcharts.min.js"></script>
-  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-  <script src="assets/vendor/chart.js/chart.umd.js"></script>
-  <script src="assets/vendor/echarts/echarts.min.js"></script>
-  <script src="assets/vendor/quill/quill.min.js"></script>
-  <script src="assets/vendor/simple-datatables/simple-datatables.js"></script>
-  <script src="assets/vendor/tinymce/tinymce.min.js"></script>
-  <script src="assets/vendor/php-email-form/validate.js"></script>
+                    document.getElementById('countdown').textContent = minutes + ":" + seconds;
 
-  <script src="assets/js/main.js"></script>
-  <!-- Template Main JS File -->
-  <script src="js/bootstrap.bundle.js"></script>
-  <script src="js/bootstrap.min.js"></script>
+                    if (--timer < 0) {
+                        clearInterval(countdownTimer);
+                        fetchSensorData(); // Fetch data when the countdown ends
+                        startCountdown(duration); // Restart countdown
+                    }
+                }, 1000);
+            }
+
+            function fetchSensorData() {
+                $.ajax({
+                    type: "GET",
+                    url: "long_polling.php",
+                    dataType: "json",
+                    success: function(data) {
+                        updateGauge(tdsGauge, parseFloat(data.tds_level), 'ppm');
+                        updateGauge(phGauge, parseFloat(data.pH_level), 'pH');
+                        updateGauge(ecGauge, parseFloat(data.ec_level), 'µS/cm');
+                        updateGauge(waterTempGauge, parseFloat(data.water_temperature), '°C');
+                        updateGauge(airTempGauge, parseFloat(data.air_temperature), '°C');
+                        updateGauge(humidityGauge, parseFloat(data.air_humidity), '%');
+
+                        // Restart countdown for 5 minutes
+                        clearInterval(countdownTimer);
+                        startCountdown(300); // 300 seconds for 5 minutes
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Failed to fetch sensor data: " + error);
+                        setTimeout(fetchSensorData, 5000); // Retry after 5 seconds
+                    }
+                });
+            }
+
+            // Start the initial countdown for 5 minutes when the page loads
+            window.onload = function() {
+                startCountdown(300); // 300 seconds for 5 minutes
+                fetchSensorData(); // Initial fetch
+            };
+
+
+            // Define the color ranges for each gauge
+            const tdsRanges = [{
+                    startValue: 0,
+                    endValue: 550,
+                    color: "#00BFFF"
+                },
+                {
+                    startValue: 556,
+                    endValue: 850,
+                    color: "#7CFC00"
+                },
+                {
+                    startValue: 851,
+                    endValue: 1000,
+                    color: "#FFD700"
+                },
+                {
+                    startValue: 1001,
+                    endValue: 1200,
+                    color: "#FF4500"
+                }
+            ];
+
+            const phRanges = [{
+                    startValue: 0,
+                    endValue: 5.4,
+                    color: "#FF4500"
+                },
+                {
+                    startValue: 5.5,
+                    endValue: 6.6,
+                    color: "#7CFC00"
+                },
+                {
+                    startValue: 6.5,
+                    endValue: 8,
+                    color: "#FFD700"
+                },
+                {
+                    startValue: 8,
+                    endValue: 10,
+                    color: "#FF4500"
+                }
+            ];
+
+            const ecRanges = [{
+                    startValue: 0,
+                    endValue: 3,
+                    color: "#7CFC00"
+                },
+                {
+                    startValue: 3,
+                    endValue: 4,
+                    color: "#FFD700"
+                },
+                {
+                    startValue: 4,
+                    endValue: 5,
+                    color: "#FF4500"
+                }
+            ];
+
+            const waterTempRanges = [{
+                    startValue: 0,
+                    endValue: 10,
+                    color: "#00BFFF"
+                },
+                {
+                    startValue: 10,
+                    endValue: 25,
+                    color: "#7CFC00"
+                },
+                {
+                    startValue: 25,
+                    endValue: 35,
+                    color: "#FFD700"
+                },
+                {
+                    startValue: 35,
+                    endValue: 50,
+                    color: "#FF4500"
+                }
+            ];
+
+            const airTempRanges = [{
+                    startValue: 0,
+                    endValue: 15,
+                    color: "#00BFFF"
+                },
+                {
+                    startValue: 15,
+                    endValue: 25,
+                    color: "#7CFC00"
+                },
+                {
+                    startValue: 25,
+                    endValue: 35,
+                    color: "#FFD700"
+                },
+                {
+                    startValue: 35,
+                    endValue: 50,
+                    color: "#FF4500"
+                }
+            ];
+
+            const humidityRanges = [{
+                    startValue: 0,
+                    endValue: 30,
+                    color: "#FF4500"
+                },
+                {
+                    startValue: 30,
+                    endValue: 60,
+                    color: "#7CFC00"
+                },
+                {
+                    startValue: 60,
+                    endValue: 80,
+                    color: "#FFD700"
+                },
+                {
+                    startValue: 80,
+                    endValue: 100,
+                    color: "#FF4500"
+                }
+            ];
+
+            // Create gauges with the defined ranges
+            var tdsGauge = createGauge('#tds_gauge', 1200, 'ppm', tdsRanges);
+            var phGauge = createGauge('#ph_gauge', 10, 'pH', phRanges);
+            var ecGauge = createGauge('#ec_gauge', 5, 'µS/cm', ecRanges);
+            var waterTempGauge = createGauge('#water_temp_gauge', 50, '°C', waterTempRanges);
+            var airTempGauge = createGauge('#air_temp_gauge', 50, '°C', airTempRanges);
+            var humidityGauge = createGauge('#humidity_gauge', 100, '%', humidityRanges);
+
+            fetchSensorData();
+        });
+    </script>
+
+    <!-- <a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a> -->
+    <script src="assets/vendor/apexcharts/apexcharts.min.js"></script>
+    <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/vendor/chart.js/chart.umd.js"></script>
+    <script src="assets/vendor/echarts/echarts.min.js"></script>
+    <script src="assets/vendor/quill/quill.min.js"></script>
+    <script src="assets/vendor/simple-datatables/simple-datatables.js"></script>
+    <script src="assets/vendor/tinymce/tinymce.min.js"></script>
+    <script src="assets/vendor/php-email-form/validate.js"></script>
+    <script src="assets/js/main.js"></script>
 </body>
 
 </html>

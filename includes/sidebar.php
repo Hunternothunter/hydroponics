@@ -1,9 +1,23 @@
+<?php
+// $profilepic = $_SESSION['profilepic'];
+?>
 <aside id="sidebar" class="sidebar">
   <ul class="sidebar-nav" id="sidebar-nav">
+
+    <li class="nav-item mb-3 ms-3">
+      <div class="d-flex align-items-center justify-content-start">
+        <img src="public/profile_pictures/<?= htmlspecialchars($profilepic); ?>" alt="Profile" id="navbarImage" class="rounded-circle border border-shadow" height="55" width="55">
+        <div class="d-flex flex-column mt-1 pt-1">
+          <span class="ps-3" style="font-weight: 400; font-size: 0.85em;">Welcome,</span>
+          <p class="ps-3" style="font-weight: 600; font-size: 1em;"><?= $fullName; ?></p>
+        </div>
+      </div>
+    </li>
+    <li class="nav-heading">General</li>
     <li class="nav-item">
-      <a class="nav-link collapsed" href="gauge-index.php">
+      <a class="nav-link collapsed" href="index.php">
         <i class="bi bi-grid"></i>
-        <span>Dashboard</span>
+        <span>Home</span>
       </a>
     </li>
     <li class="nav-item">

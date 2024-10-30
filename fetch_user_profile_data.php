@@ -17,6 +17,7 @@ try {
         $response['phoneNum'] = $result["phoneNum"];
         $response['address'] = $result["address"];
         $response['userPosition'] = $result["userPosition"];
+        $response['profilePicture'] = 'public/profile_pictures/' . $result["profilepic"];
         $response['navFullName'] = $result["fullName"];
     }
 } catch (PDOException $e) {

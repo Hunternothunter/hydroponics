@@ -2,7 +2,7 @@
 require_once('includes/config.php');
 session_start();
 if (!isset($_SESSION['userID'])) {
-  header("Location: loginpage.php");
+  header("Location: login.php");
   exit;
 } else {
   $user_id =  $_SESSION['userID'];
@@ -27,19 +27,6 @@ if (!isset($_SESSION['userID'])) {
     echo "Error: " . $e->getMessage();
   }
 
-  try {
-    $id = $_SESSION['userID'];
-    $sql = "SELECT profilepic FROM user_login WHERE userID=?";
-    $stmt = $conn->prepare($sql);
-    $stmt->execute([$id]);
-    $stmt->bindColumn(1, $profilepic, PDO::PARAM_LOB);
-    $stmt->fetch(PDO::FETCH_BOUND);
-
-    // header("Content-Type: image/jpeg");
-    echo $profilepic;
-  } catch (\Throwable $th) {
-    throw $th;
-  }
   $con = null;
 }
 ?>
@@ -57,7 +44,7 @@ if (!isset($_SESSION['userID'])) {
   <meta content="" name="keywords">
 
   <link href="assets/img/logoSIT.png" rel="icon">
-  
+
   <!-- Favicons -->
   <link href="assets/img/favicon.png" rel="icon">
   <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
@@ -80,6 +67,9 @@ if (!isset($_SESSION['userID'])) {
   <link href="assets/css/style.css" rel="stylesheet">
   <!-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> -->
   <script src="jquery/dist/jquery.min.js"></script>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
   <!-- =======================================================
   * Template Name: NiceAdmin
   * Updated: Jan 29 2024 with Bootstrap v5.3.2
@@ -135,16 +125,8 @@ if (!isset($_SESSION['userID'])) {
 
     <div class="pagetitle">
       <h1>Profile</h1>
-      <nav>
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="index.php">Home</a></li>
-          <li class="breadcrumb-item">Users</li>
-          <li class="breadcrumb-item active">Profile</li>
-        </ol>
-      </nav>
     </div><!-- End Page Title -->
     <div class="col col-md-6">
-      <!-- <div class="alert-message"></div> -->
       <div id="floatingAlert"></div>
     </div>
     <section class="section profile">
@@ -153,8 +135,7 @@ if (!isset($_SESSION['userID'])) {
 
           <div class="card">
             <div class="card-body profile-card pt-4 d-flex flex-column align-items-center">
-
-              <img src="data:image/jpeg;base64,<?php echo base64_encode($image); ?>" alt="Profile" id="cardImage" class="rounded-circle">
+              <img src="public/profile_pictures/<?= htmlspecialchars($image); ?>" alt="Profile" id="cardImage" class="rounded-circle" height="100" width="100">
               <h2 id="cardFullName"><?php echo $firstname . ' ' . $lastname ?></h2>
               <h3 id="cardUserPosition"><?php echo $userPosition ?></h3>
               <div class="social-links mt-2">
@@ -183,10 +164,6 @@ if (!isset($_SESSION['userID'])) {
                   <button class="nav-link" data-bs-toggle="tab" data-bs-target="#profile-edit">Edit Profile</button>
                 </li>
 
-                <!-- <li class="nav-item">
-                  <button class="nav-link" data-bs-toggle="tab" data-bs-target="#profile-settings">Settings</button>
-                </li> -->
-
                 <li class="nav-item">
                   <button class="nav-link" data-bs-toggle="tab" data-bs-target="#profile-change-password">Change Password</button>
                 </li>
@@ -194,8 +171,6 @@ if (!isset($_SESSION['userID'])) {
               </ul>
 
               <div class="tab-content pt-2">
-
-
 
                 <div class="tab-pane fade show active profile-overview" id="profile-overview">
                   <h5 class="card-title">About</h5>
@@ -211,20 +186,11 @@ if (!isset($_SESSION['userID'])) {
 
                   </div>
 
-                  <!-- <div class="row">
-                    <div class="col-lg-3 col-md-4 label">Company</div>
-                    <div class="col-lg-9 col-md-8">Sierra Vision</div>
-                  </div> -->
-
                   <div class="row">
                     <div class="col-lg-3 col-md-4 label">Job</div>
                     <div class="col-lg-9 col-md-8" id="overviewUserPosition"><?= $userPosition ?></div>
                   </div>
 
-                  <!-- <div class="row">
-                    <div class="col-lg-3 col-md-4 label">Country</div>
-                    <div class="col-lg-9 col-md-8">Philippines</div>
-                  </div> -->
                   <div class="row">
                     <div class="col-lg-3 col-md-4 label">Email</div>
                     <div class="col-lg-9 col-md-8" id="overviewEmail"><?= $email ?></div>
@@ -243,7 +209,6 @@ if (!isset($_SESSION['userID'])) {
                   </div>
                 </div>
 
-
                 <div class="tab-pane fade profile-edit pt-3" id="profile-edit">
                   <!-- Profile Edit Form -->
                   <form id="myForm" method="POST" action="update-user-profile.php" enctype="multipart/form-data">
@@ -251,19 +216,20 @@ if (!isset($_SESSION['userID'])) {
                     <div class="row mb-3">
                       <label for="profileImage" class="col-md-4 col-lg-3 col-form-label">Profile Image</label>
                       <div class="col-md-8 col-lg-9">
-                        <!-- <img id="profile-preview" src="get-profile-image.php?id=<?= $aid ?>" alt="Profile" style="max-width: 150px;"> -->
-                        <img id="profile-preview" src="data:image/jpeg;base64,<?php echo base64_encode($image); ?>" alt="Profile" style="max-width: 150px;">
+                        <img id="profile-preview" src="public/profile_pictures/<?= htmlspecialchars($imageName); ?>" alt="Profile" style="max-width: 150px;">
                         <div class="pt-2">
-                          <div class="form-group col-md-3">
-                            <label class="btn btn-primary btn-sm" title="Upload new profile image">
-                              <i class="bi bi-upload"></i>
+                          <div class="d-flex">
+                            <div class="form-group me-2">
+                              <a href="#" class="btn btn-primary btn-sm" title="Upload new profile image" id="uploadButton">
+                                <i class="bi bi-upload"></i>
+                              </a>
                               <input type="file" id="profileImage" name="img" style="display: none;" onchange="previewImage(event)" />
-                            </label>
-                          </div>
-                          <div class="form-group col-md-3">
-                            <a href="#" class="btn btn-danger btn-sm" title="Remove my profile image">
-                              <i class="bi bi-trash"></i>
-                            </a>
+                            </div>
+                            <div class="form-group">
+                              <a href="#" class="btn btn-danger btn-sm" title="Remove my profile image">
+                                <i class="bi bi-trash"></i>
+                              </a>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -282,7 +248,7 @@ if (!isset($_SESSION['userID'])) {
                         <input name="lastName" type="text" class="form-control" id="lastName" required value="<?= $lastname; ?>">
                       </div>
                     </div>
-                    
+
                     <div class="row mb-3">
                       <label for="userPosition" class="col-md-4 col-lg-3 col-form-label">Job</label>
                       <div class="col-md-8 col-lg-9">
@@ -323,11 +289,7 @@ if (!isset($_SESSION['userID'])) {
                           <h5 class="modal-title" id="messageModalLabel">Message</h5>
                         </div>
                         <div class="modal-body" id="messageBody">
-
                         </div>
-                        <!-- <div class="modal-footer">
-                          <button type="button" class="btn btn-primary" id="okButton">OK</button>
-                        </div> -->
                       </div>
                     </div>
                   </div>
@@ -336,80 +298,36 @@ if (!isset($_SESSION['userID'])) {
 
                 </div>
 
-                <div class="tab-pane fade pt-3" id="profile-settings">
-
-                  <!-- Settings Form -->
-                  <form>
-
-                    <div class="row mb-3">
-                      <label for="fullName" class="col-md-4 col-lg-3 col-form-label">Email Notifications</label>
-                      <div class="col-md-8 col-lg-9">
-                        <div class="form-check">
-                          <input class="form-check-input" type="checkbox" id="changesMade" checked>
-                          <label class="form-check-label" for="changesMade">
-                            Changes made to your account
-                          </label>
-                        </div>
-                        <div class="form-check">
-                          <input class="form-check-input" type="checkbox" id="newProducts" checked>
-                          <label class="form-check-label" for="newProducts">
-                            Information on new products and services
-                          </label>
-                        </div>
-                        <div class="form-check">
-                          <input class="form-check-input" type="checkbox" id="proOffers">
-                          <label class="form-check-label" for="proOffers">
-                            Marketing and promo offers
-                          </label>
-                        </div>
-                        <div class="form-check">
-                          <input class="form-check-input" type="checkbox" id="securityNotify" checked disabled>
-                          <label class="form-check-label" for="securityNotify">
-                            Security alerts
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="text-center">
-                      <button type="submit" class="btn btn-primary">Save Changes</button>
-                    </div>
-                  </form><!-- End settings Form -->
-
-                </div>
-
                 <div class="tab-pane fade pt-3" id="profile-change-password">
                   <!-- Change Password Form -->
-                  <form>
-
+                  <form id="changePasswordForm" method="POST" action="change-password.php">
                     <div class="row mb-3">
                       <label for="currentPassword" class="col-md-4 col-lg-3 col-form-label">Current Password</label>
                       <div class="col-md-8 col-lg-9">
-                        <input name="password" type="password" class="form-control" id="currentPassword">
+                        <input name="currentPassword" type="password" class="form-control" id="currentPassword" required>
                       </div>
                     </div>
 
                     <div class="row mb-3">
                       <label for="newPassword" class="col-md-4 col-lg-3 col-form-label">New Password</label>
                       <div class="col-md-8 col-lg-9">
-                        <input name="newpassword" type="password" class="form-control" id="newPassword">
+                        <input name="newPassword" type="password" class="form-control" id="newPassword" required minlength="6">
                       </div>
                     </div>
 
                     <div class="row mb-3">
                       <label for="renewPassword" class="col-md-4 col-lg-3 col-form-label">Re-enter New Password</label>
                       <div class="col-md-8 col-lg-9">
-                        <input name="renewpassword" type="password" class="form-control" id="renewPassword">
+                        <input name="renewPassword" type="password" class="form-control" id="renewPassword" required minlength="6">
                       </div>
                     </div>
 
                     <div class="text-center">
                       <button type="submit" class="btn btn-primary">Change Password</button>
                     </div>
-                  </form><!-- End Change Password Form -->
-
+                  </form>
+                  <!-- End Change Password Form -->
                 </div>
-
               </div><!-- End Bordered Tabs -->
 
             </div>
@@ -421,15 +339,55 @@ if (!isset($_SESSION['userID'])) {
 
   </main><!-- End #main -->
 
+  <?php require_once('includes/mobile-nav.php'); ?>
+
   <!-- ======= Footer ======= -->
   <?php
   require_once('includes/footer.php');
   ?>
   <!-- End Footer -->
 
-  <a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- <a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a> -->
   <script src="js/automatic_logout.js"></script>
   <script>
+    $('#changePasswordForm').submit(function(event) {
+      event.preventDefault(); // Prevent default form submission
+      var formData = $(this).serialize(); // Serialize form data
+
+      $.ajax({
+        url: $(this).attr('action'),
+        type: 'POST',
+        data: formData,
+        dataType: 'json', // Expect JSON response
+        success: function(response) {
+          // Display success message
+          Swal.fire({
+            icon: 'success',
+            title: 'Success',
+            text: response.message
+          });
+          $('#changePasswordForm')[0].reset(); // Reset form after success
+          getUserProfileInfo();
+          $('.nav-item [data-bs-target="#profile-overview"]').click();
+        },
+        error: function(xhr) {
+          // Display error message
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: xhr.responseJSON.message || 'An unknown error occurred.'
+          });
+        }
+      });
+    });
+
+    document.getElementById('uploadButton').addEventListener('click', function(event) {
+      event.preventDefault(); // Prevent default anchor behavior
+      document.getElementById('profileImage').click(); // Trigger file input click
+    });
+
     function previewImage(event) {
       var reader = new FileReader();
       reader.onload = function() {
@@ -439,13 +397,6 @@ if (!isset($_SESSION['userID'])) {
       reader.readAsDataURL(event.target.files[0]);
     }
 
-    // $(document).ready(function() {
-    //   // Handle OK button click event
-    //   $('#okButton').click(function() {
-    //     // Close the modal
-    //     $('#messageModal').modal('hide');
-    //   });
-    // });
     function showAlert(message) {
       var successMessage = message;
       var alertClass = 'alert-success';
@@ -461,15 +412,6 @@ if (!isset($_SESSION['userID'])) {
       }, 1500);
     }
 
-    // function showMessage(message) {
-    //   $('#messageBody').text(message);
-    //   $('#messageModal').modal('show');
-    //   setTimeout(function() {
-    //     $('#messageModal').modal('hide');
-    //     getUserProfileInfo();
-    //   }, 800);
-    // }
-
     function getUserProfileInfo() {
       $.ajax({
         type: "POST",
@@ -480,13 +422,13 @@ if (!isset($_SESSION['userID'])) {
           if (!response.error) {
             $('#cardFullName').text(response.fullName);
             $('#cardUserPosition').text(response.userPosition);
-            $('#cardImage').attr('src', 'get_user_profile_image.php');
+            $('#cardImage').attr('src', response.profilePicture);
             $('#overviewUserPosition').text(response.userPosition);
             $('#overviewFullName').text(response.fullName);
             $('#overviewEmail').text(response.email);
             $('#overviewPhoneNum').text(response.phoneNum);
             $('#overviewAddress').text(response.address);
-            $('#navbarImage').attr('src', 'get_user_profile_image.php');
+            $('#navbarImage').attr('src', response.profilePicture);
             $('#navbarFullName').text(response.navFullName);
             $('#navFullName').text(response.fullName);
             $('#navPosition').text(response.userPosition);
@@ -510,12 +452,22 @@ if (!isset($_SESSION['userID'])) {
         cache: false,
         processData: false,
         success: function(response) {
-          showAlert("Personal Information has been updated.");
+          // Ensure response is in JSON format
+          Swal.fire({
+            icon: 'success',
+            title: 'Success',
+            text: response.message
+          });
           getUserProfileInfo();
           $('.nav-item [data-bs-target="#profile-overview"]').click();
         },
-        error: function(xhr, status, error) {
-          showMessage("Error occurred: " + error);
+        error: function(xhr) {
+          // Handle error response
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: xhr.responseJSON.message || 'An unknown error occurred.'
+          });
         }
       });
     });

@@ -16,6 +16,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         session_start();
         $_SESSION['userID'] = $user['userID'];
         $_SESSION['username'] = $user['username'];
+        $_SESSION['profilepic'] = $user['profilepic'];
+        $_SESSION['userFirstName'] = $user['firstname'];
+        $_SESSION['userLastName'] = $user['lastname'];
+
         // header('location:gauge-index.php');
         echo json_encode(array('success' => true));
         exit;
